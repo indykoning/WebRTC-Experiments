@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title></title>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+<script src='socket.io/socket.io.js'></script>
+<script src="bundle.js" async></script>
+    <div id="app">
+        <room-nr>
+            <div><b>Room:</b> {{roomNr}}</div>
+        </room-nr>
+        <login>
+            <div slot-scope="{ joinRoom, joined }" v-show="!joined">
+                <b>Room:</b><input v-model="roomNr" type="text" id="room-nr"/>
+                <b>Name:</b><input v-model="name" type="text" id="name"/>
+                <input v-on:click="joinRoom" type="button" id="join-room" value="Join Room"/>
+            </div>
+        </login>
+    </div>
+</body>
+</html>
