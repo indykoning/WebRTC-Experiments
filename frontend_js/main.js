@@ -2,6 +2,8 @@ window.RTCPeerConnection = window.RTCPeerConnection || window.webkitRTCPeerConne
 var io = require("socket.io-client");
 window.socket = io('localhost:3000');
 require('./rtc');
+var Vue = require('vue');
+
 Vue.component('login', {
     render() {
         return this.$scopedSlots.default({

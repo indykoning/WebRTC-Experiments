@@ -1,14 +1,33 @@
+/**
+ * Usage:
+ *
+ * Create new connection
+ * let sock = new SocketIoRtcConnection(socketId).outgoing();
+ *
+ * Create new connection when connection is incoming
+ * let sock = new SocketIoRtcConnection(socketId).incomming(remoteDescription);
+ *
+ * Respond to an incomming message on a topic
+ * outgoingSocksock.on('test', console.log);
+ *
+ * Send out a message on a topic
+ * sock.emit('test', 'test', [123]);
+ */
+
 export default class SocketIoRtcConnection {
     constructor(socketId, rtcConfig = null) {
         this.socketId = socketId;
         this.rtc = new RTCPeerConnection(rtcConfig);
-        this.dataChannelLabel = 'data';
-        this.dataChannel = null;
+        this.messageListeners = {};
+        this.dataChannels = [];
 
-        // If the datachannel is added or updated set the channel.
+        // If the datachannel is added or updated set the channel
+        // and add an event listener to handle incoming messages.
         this.rtc.addEventListener('datachannel', (event) => {
-            if (event.channel.label !== this.dataChannelLabel) return;
-            this.dataChannel = event.channel;
+            this.dataChannels[event.channel.label] = event.channel;
+            event.channel.addEventListener('message', (event) => {
+                this.handleIncommingMessage(event);
+            });
         });
 
         // Once an ice candidate is available send to the other client
@@ -24,24 +43,41 @@ export default class SocketIoRtcConnection {
             if (this.socketId !== socketId) return;
             this.rtc.addIceCandidate(new RTCIceCandidate(candidate));
         });
-    }
-
-    // Set this rtcConnection as outgoing
-    outgoing()
-    {
-        // Create a datachannel with name data.
-        this.dataChannel = this.rtc.createDataChannel(this.dataChannelLabel);
-
-        // Create and send out a connection offer.
-        this.rtc.createOffer().then(offer => {
-            this.rtc.setLocalDescription(offer);
-            socket.emit('offer', this.socketId, this.rtc.localDescription);
-        });
 
         // When we recieve an answer finish up the connection.
         socket.on('answer', (socketId, remoteDescription) => {
             if (this.socketId !== socketId) return;
             this.rtc.setRemoteDescription(remoteDescription);
+        });
+
+        // We recieved a connection offer, run the incoming script.
+        socket.on('offer', (socketId, remoteDescription) => {
+            if (this.socketId !== socketId) return;
+            this.incomming(remoteDescription);
+        });
+    }
+
+    // Set this rtcConnection as outgoing
+    outgoing(dataChannels)
+    {
+        // Create a datachannel with name data.
+        for (const idx in dataChannels) {
+            let topic = dataChannels[idx];
+            this.dataChannels[topic] = this.rtc.createDataChannel(topic);
+        }
+
+        // Send an offer to connect with the client.
+        this.sendOffer();
+
+        return this;
+    }
+
+    sendOffer()
+    {
+        // Create and send out a connection offer.
+        this.rtc.createOffer().then(offer => {
+            this.rtc.setLocalDescription(offer);
+            socket.emit('offer', this.socketId, this.rtc.localDescription);
         });
 
         return this;
@@ -53,7 +89,7 @@ export default class SocketIoRtcConnection {
         // Add their remote description
         this.rtc.setRemoteDescription(remoteDescription);
 
-        // send a counter offer (answer) to the player who initialised this connection.
+        // Send an answer to the player who initialised this connection.
         this.rtc.createAnswer().then(answer => {
             this.rtc.setLocalDescription(answer);
             socket.emit('answer', this.socketId, this.rtc.localDescription);
@@ -62,14 +98,56 @@ export default class SocketIoRtcConnection {
         return this;
     }
 
-    sendMessage(message)
+    // Emit a message to the topic.
+    emit(topic, ...args)
     {
-        if (typeof message !== 'object')
-        {
-            message = {'message': message};
+        if (!this.dataChannels[topic]) {
+            this.dataChannels[topic] = this.rtc.createDataChannel(topic);
+            this.dataChannels[topic].addEventListener('message', (event) => {
+                this.handleIncommingMessage(event);
+            });
         }
 
-        message["socketId"] = this.socketId;
-        this.dataChannel.send(JSON.stringify(message));
+        const message = JSON.stringify(args);
+
+        if (this.dataChannels[topic].readyState === 'open') {
+            this.dataChannels[topic].send(message);
+        } else {
+            this.dataChannels[topic].addEventListener('open', (event) => {
+                this.dataChannels[topic].send(message);
+            });
+
+            this.sendOffer();
+        }
+
+        return this;
+    }
+
+    // Register a callback when a message has
+    // been received on the topic.
+    on(topic, callback)
+    {
+        if (!this.messageListeners[topic])
+        {
+            this.messageListeners[topic] = [];
+        }
+
+        this.messageListeners[topic].push(callback);
+
+        return this;
+    }
+
+    // Decode the incomming event and call the listeners.
+    handleIncommingMessage(event)
+    {
+        const topic = event.target.label;
+        if (!this.messageListeners.hasOwnProperty(topic)) {
+            return;
+        }
+        const response = JSON.parse(event.data);
+
+        for (const idx in this.messageListeners[topic]) {
+            this.messageListeners[topic][idx](...response);
+        }
     }
 }

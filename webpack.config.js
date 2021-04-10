@@ -58,7 +58,10 @@ const frontend = {
     resolve: {
         root: __dirname + '/js',
         modulesDirectories: ['node_modules'],
-        extensions: ['', '.js']
+        extensions: ['', '.js'],
+        alias: {
+            'vue$': 'vue/dist/vue.js'
+        },
     },
     output: {
         path: dir_build,
