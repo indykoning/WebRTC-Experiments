@@ -3,7 +3,6 @@ var app = express();
 var server = require('http').Server(app).listen(3000);
 var io = require('socket.io')(server);
 
-console.log('start');
 var messages = [];
 
 function broadcastToRoom(socket, topic, message) {
@@ -18,7 +17,7 @@ io.on('connection', (socket)=>{
 
     socket.on('join', (data) => {
         socket.join('room-' + data.roomNr);
-        console.log(data, socket.rooms);
+
         io.to('room-' + data.roomNr).emit('joined', socket.id);
     });
 

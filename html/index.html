@@ -5,18 +5,10 @@
     <title></title>
 </head>
 <body>
-<script src="bundle.js" async></script>
     <div id="app">
-        <room-nr>
-            <div><b>Room:</b> {{roomNr}}</div>
-        </room-nr>
-        <login>
-            <div slot-scope="{ joinRoom, joined }" v-show="!joined">
-                <b>Room:</b><input v-model="roomNr" type="text" id="room-nr"/>
-                <b>Name:</b><input v-model="name" type="text" id="name"/>
-                <input v-on:click="joinRoom" type="button" id="join-room" value="Join Room"/>
-            </div>
-        </login>
+        <room-nr></room-nr>
+        <login></login>
     </div>
+    <script src="bundle.js" async></script>
 </body>
 </html>

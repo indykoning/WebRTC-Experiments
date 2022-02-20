@@ -1,0 +1,43 @@
+/*@tailwind base;
+@tailwind components;
+@tailwind utilities;
+*/
+.checked {
+    background: red;
+}
+
+.red.outer-box {
+    background: red;
+}
+
+.red .inner-box {
+    color: red;
+}
+
+.blue.outer-box {
+    background: blue;
+}
+
+.blue .inner-box {
+    color: blue;
+}
+
+.inner-box {
+    background-color: lightgray;
+    padding: 5px;
+    margin: 1px;
+    border-radius: 10px;
+    min-width: 20px;
+    min-height: 20px;
+    display: inherit;
+    text-align: center;
+}
+.outer-box {
+    padding: 5px;
+    display: inline;
+}
+
+.row {
+    display: flex;
+    width: 100%;
+}
